@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		8C5A776C1BD54D160088AE1D /* RCTDataCortex.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8C5A776B1BD54D160088AE1D /* RCTDataCortex.h */; };
 		8C5A776E1BD54D160088AE1D /* RCTDataCortex.m in Sources */ = {isa = PBXBuildFile; fileRef = 8C5A776D1BD54D160088AE1D /* RCTDataCortex.m */; };
+		8C5A77761BD54DD20088AE1D /* DataCortex.m in Sources */ = {isa = PBXBuildFile; fileRef = 8C5A77751BD54DD20088AE1D /* DataCortex.m */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -28,6 +29,8 @@
 		8C5A77681BD54D160088AE1D /* libRCTDataCortex.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCTDataCortex.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8C5A776B1BD54D160088AE1D /* RCTDataCortex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTDataCortex.h; sourceTree = "<group>"; };
 		8C5A776D1BD54D160088AE1D /* RCTDataCortex.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RCTDataCortex.m; sourceTree = "<group>"; };
+		8C5A77741BD54DD20088AE1D /* DataCortex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DataCortex.h; sourceTree = "<group>"; };
+		8C5A77751BD54DD20088AE1D /* DataCortex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DataCortex.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,7 +47,10 @@
 		8C5A775F1BD54D160088AE1D = {
 			isa = PBXGroup;
 			children = (
-				8C5A776A1BD54D160088AE1D /* RCTDataCortex */,
+				8C5A77741BD54DD20088AE1D /* DataCortex.h */,
+				8C5A77751BD54DD20088AE1D /* DataCortex.m */,
+				8C5A776B1BD54D160088AE1D /* RCTDataCortex.h */,
+				8C5A776D1BD54D160088AE1D /* RCTDataCortex.m */,
 				8C5A77691BD54D160088AE1D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -55,15 +61,6 @@
 				8C5A77681BD54D160088AE1D /* libRCTDataCortex.a */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		8C5A776A1BD54D160088AE1D /* RCTDataCortex */ = {
-			isa = PBXGroup;
-			children = (
-				8C5A776B1BD54D160088AE1D /* RCTDataCortex.h */,
-				8C5A776D1BD54D160088AE1D /* RCTDataCortex.m */,
-			);
-			path = RCTDataCortex;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -122,6 +119,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8C5A77761BD54DD20088AE1D /* DataCortex.m in Sources */,
 				8C5A776E1BD54D160088AE1D /* RCTDataCortex.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -210,6 +208,13 @@
 		8C5A77721BD54D160088AE1D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"$(SRCROOT)/node_modules/react-native/React/**",
+					"$(SRCROOT)/../../React/**",
+					"$(SRCROOT)/../react-native/React",
+				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -219,6 +224,13 @@
 		8C5A77731BD54D160088AE1D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"$(SRCROOT)/node_modules/react-native/React/**",
+					"$(SRCROOT)/../../React/**",
+					"$(SRCROOT)/../react-native/React",
+				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -244,6 +256,7 @@
 				8C5A77731BD54D160088AE1D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
