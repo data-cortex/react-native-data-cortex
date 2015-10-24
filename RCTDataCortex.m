@@ -40,7 +40,7 @@ RCT_EXPORT_METHOD(economyWithProperties: (NSDictionary*)
 RCT_EXPORT_METHOD(addUserTag: (NSString*) userTag)
 {
     NSLog(@"userTag: %@", userTag);
-    [[DataCortex sharedInstance] addUserTag:userTag];
+    [[DataCortex sharedInstance] setUserTag:userTag];
 }
 
 @end
