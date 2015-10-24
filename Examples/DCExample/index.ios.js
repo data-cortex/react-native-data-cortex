@@ -14,27 +14,27 @@ var {
 } = React;
 
 var DataCortex = require('react-native-data-cortex');
+DataCortex.init("dYlBxjMTYkXadqhnOyHnjo7iGb5bW1y0", "rs_example");
 
 var DCExample = React.createClass({
 
   componentDidMount: function() {
-    DataCortex.init("dYlBxjMTYkXadqhnOyHnjo7iGb5bW1y0", "rs_example");
-    DataCortex.eventWithProperties({"kingdome": "application_launch"});
+    DataCortex.event({"kingdom": "application_launch"});
     console.log('component mounted');
   },
 
   buttonOneClick: function() {
     console.log('buttonOneClick');
-    DataCortex.eventWithProperties({
-      "kingdome": "user_interaction",
+    DataCortex.event({
+      "kingdom": "user_interaction",
       "phylum": "buttonOneClick",
     });
   },
 
   buttonTwoClick: function() {
     console.log('buttonTwoClick');
-    DataCortex.eventWithProperties({
-      "kingdome": "user_purchase",
+    DataCortex.economyEvent({
+      "kingdom": "user_purchase",
       "phylum": "buttonTwoClick",
     }, "USD", 123.0);
   },

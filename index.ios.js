@@ -9,8 +9,8 @@ var DataCortex = require('react-native').NativeModules.DataCortex;
 
 exports.init = init;
 exports.addUserTag = addUserTag;
-exports.eventWithProperties = eventWithProperties;
-exports.economyWithProperties = economyWithProperties;
+exports.event = event;
+exports.economyEvent = economyEvent;
 
 function init(api_key, org)
 {
@@ -22,12 +22,12 @@ function addUserTag(userTag)
 	DataCortex.addUserTag(userTag);
 }
 
-function eventWithProperties(properties)
+function event(properties)
 {
 	DataCortex.eventWithProperties(properties);
 }
 
-function economyWithProperties(properties, spendCurrency, spendAmount)
+function economyEvent(properties, spendCurrency, spendAmount)
 {
 	DataCortex.economyWithProperties(properties, spendCurrency, spendAmount);
 }
