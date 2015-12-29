@@ -216,8 +216,7 @@ static DataCortex *g_sharedDataCortex = nil;
 }
 
 - (void)addEvent:(NSObject *)event {
-  
-          NSLog(@"added event");
+
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 
     [self->eventLock lock];
@@ -266,8 +265,6 @@ static DataCortex *g_sharedDataCortex = nil;
 
 - (NSDictionary *)generateDCRequestWithEvents:(NSArray *)events {
     NSMutableDictionary *request = [[NSMutableDictionary alloc] init];
-  
-            NSLog(@"generateDCRequestWithEvents");
 
     [request setObject:self->apiKey forKey:@"api_key"];
     [request setObject:self->appVersion forKey:@"app_ver"];
@@ -303,7 +300,6 @@ static DataCortex *g_sharedDataCortex = nil;
 }
 
 - (void)postEvents:(NSArray *)events completionHandler:(void (^) (NSInteger))completionHandler {
-              NSLog(@"postEvents");
     NSOperationQueue *parent_queue = [NSOperationQueue currentQueue];
     NSOperationQueue *queue = [[NSOperationQueue alloc] init];
 

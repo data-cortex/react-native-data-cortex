@@ -9,6 +9,9 @@ export function init(api_key,org) {
 }
 
 export function addUserTag(userTag) {
+  if (userTag && typeof userTag != 'string') {
+    userTag = userTag.toString();
+  }
   DataCortex.addUserTag(userTag);
 }
 
