@@ -1,5 +1,17 @@
 {
   "name": "react-native-data-cortex",
-  "version": "0.0.1",
-  "private": true
+  "version": "0.0.2",
+  "description": "Easy integration with Data Cortex from React Native",
+  "main": "index.ios.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:data-cortex/react-native-data-cortex.git"
+  },
+  "author": {
+    "name": "Jim Lake"
+  },
+  "contributors": [
+    "Yanko Bolanos"
+  ],
+  "license": "BSD"
 }
