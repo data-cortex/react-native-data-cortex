@@ -1,52 +1,38 @@
 'use strict';
 
-var React = require('react-native');
-var {
-  requireNativeComponent,
-} = React;
+import React from 'react-native';
 
-var DataCortex = require('react-native').NativeModules.DataCortex;
+const { DataCortex } = React.NativeModules;
 
-exports.init = init;
-exports.addUserTag = addUserTag;
-exports.event = event;
-exports.economyEvent = economyEvent;
-
-function init(api_key, org)
-{
-	DataCortex.sharedInstance(api_key, org);
+export function init(api_key,org) {
+  DataCortex.sharedInstance(api_key,org);
 }
 
-function addUserTag(userTag)
-{
-	DataCortex.addUserTag(userTag);
+export function addUserTag(userTag) {
+  DataCortex.addUserTag(userTag);
 }
 
-function event(properties)
-{
-    if( properties === null || typeof properties !== 'object' )
-    {
-        throw new Error('properties must be an object');
-    }
-    
-	DataCortex.eventWithProperties(properties);
+export function event(props) {
+  if (!props || typeof props !== 'object') {
+    throw new Error('props must be an object');
+  }
+
+  DataCortex.eventWithProperties(props);
 }
 
-function economyEvent(properties)
-{
+export function economyEvent(props) {
+  if (!props || typeof props != 'object' )
+  {
+    throw new Error('props must be an object');
+  }
+  if (!props.spendCurrency) {
+    throw new Error('spendCurrency is required');
+  }
+  if (typeof props.spendAmount != 'number') {
+    throw new Error('spendAmount is required');
+  }
 
-    if( properties === null || typeof properties !== 'object' )
-    {
-        throw new Error('properties must be an object');
-    }
-
-    if( properties.spendCurrency && typeof properties.spendAmount === 'number' )
-    {
-		DataCortex.economyWithProperties(properties, properties.spendCurrency, properties.spendAmount);
-    }
-    else
-    {
-        throw new Error('You must pass spendCurrency and spendAmount to economyEvent');
-    }
-
+  DataCortex.economyWithProperties(props,props.spendCurrency,props.spendAmount);
 }
+
+export default { init, addUserTag, event, economyEvent };
