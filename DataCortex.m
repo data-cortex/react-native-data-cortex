@@ -29,7 +29,7 @@ static NSString * const LAST_DAU_SEND_KEY = @"data_cortex_lastDAUSend";
 @implementation DataCortex {
     dispatch_queue_t sendQueue;
 
-    NSLock *runningLock;
+    BOOL isSendRunning;
     NSLock *eventLock;
     NSString *apiKey;
     NSString *org;
@@ -91,7 +91,8 @@ static DataCortex *g_sharedDataCortex = nil;
 
 - (DataCortex *)initWithAPIKey:(NSString *)initApiKey forOrg:(NSString *)initOrg {
     if (self = [super init]) {
-        sendQueue = dispatch_queue_create("com.data-cortex.sendQueue",NULL);
+        self->sendQueue = dispatch_queue_create("com.data-cortex.sendQueue",NULL);
+        self->isSendRunning = FALSE;
 
         NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 
@@ -135,7 +136,6 @@ static DataCortex *g_sharedDataCortex = nil;
         [self->dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZZZZZ"];
 
         self->eventLock = [[NSLock alloc] init];
-        self->runningLock = [[NSLock alloc] init];
 
         [self initializeEventList];
 
@@ -184,14 +184,14 @@ static DataCortex *g_sharedDataCortex = nil;
 
 - (void)sendEvents {
     dispatch_async(self->sendQueue, ^{
-      BOOL acquired = [self->runningLock tryLock];
-      if (acquired) {
+      if (!self->isSendRunning) {
+          self->isSendRunning = true;
           __block NSArray *sendList = [self getSendEvents];
 
           if ([sendList count] > 0) {
               [self postEvents:sendList completionHandler:^(NSInteger httpStatus) {
                   dispatch_async(self->sendQueue, ^{
-                      BOOL sendDelayed = TRUE;
+                      BOOL sendDelayed = FALSE;
                       if (httpStatus >= 200 && httpStatus <= 299) {
                           [self removeEvents:sendList];
                       } else if (httpStatus == 400) {
@@ -204,10 +204,10 @@ static DataCortex *g_sharedDataCortex = nil;
                           [self removeEvents:sendList];
                       } else {
                           // Unknown error, lets just wait and try again.
-                          sendDelayed = true;
+                          sendDelayed = TRUE;
                       }
 
-                      [self->runningLock unlock];
+                      self->isSendRunning = FALSE;
                       if (sendDelayed) {
                           [self performSelector:@selector(sendEvents) withObject:nil afterDelay:DELAY_RETRY_INTERVAL];
                       } else {
@@ -216,7 +216,7 @@ static DataCortex *g_sharedDataCortex = nil;
                   });
               }];
           } else {
-              [self->runningLock unlock];
+              self->isSendRunning = FALSE;
           }
       }
     });
