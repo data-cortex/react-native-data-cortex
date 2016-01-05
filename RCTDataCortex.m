@@ -6,9 +6,12 @@
 
 RCT_EXPORT_MODULE();
 
-RCT_EXPORT_METHOD(sharedInstance:(NSString *)apiKey forOrg:(NSString *)org)
+RCT_EXPORT_METHOD(sharedInstance:(NSString *)apiKey
+  forOrg:(NSString *)org
+  callback:(RCTResponseSenderBlock)callback)
 {
   [DataCortex sharedInstanceWithAPIKey:apiKey forOrg:org];
+  callback(@[[NSNull null]]);
 }
 
 RCT_EXPORT_METHOD(eventWithProperties:(NSDictionary *)properties)

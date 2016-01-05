@@ -4,8 +4,23 @@ import React from 'react-native';
 
 const { DataCortex } = React.NativeModules;
 
-export function init(api_key,org) {
-  DataCortex.sharedInstance(api_key,org);
+let is_initialized = false;
+let user_tag = false;
+const event_list = [];
+const economy_list = [];
+
+export function init(api_key,org,done) {
+  if (!done) {
+    done = function() {};
+  }
+  DataCortex.sharedInstance(api_key,org,(err) => {
+    is_initialized = true;
+    if (user_tag !== false) {
+      addUserTag(user_tag);
+    }
+    event_list.forEach(event);
+    economy_list.forEach(economyEvent);
+  });
 }
 
 export function addUserTag(userTag) {
@@ -19,8 +34,11 @@ export function event(props) {
   if (!props || typeof props !== 'object') {
     throw new Error('props must be an object');
   }
-
-  DataCortex.eventWithProperties(props);
+  if (is_initialized) {
+    DataCortex.eventWithProperties(props);
+  } else {
+    event_list.push(props);
+  }
 }
 
 export function economyEvent(props) {
@@ -35,7 +53,11 @@ export function economyEvent(props) {
     throw new Error('spendAmount is required');
   }
 
-  DataCortex.economyWithProperties(props,props.spendCurrency,props.spendAmount);
+  if (is_initialized) {
+    DataCortex.economyWithProperties(props,props.spendCurrency,props.spendAmount);
+  } else {
+    economy_list.push(props);
+  }
 }
 
 export default { init, addUserTag, event, economyEvent };
