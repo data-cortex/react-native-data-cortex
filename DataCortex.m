@@ -281,7 +281,7 @@ static DataCortex *g_sharedDataCortex = nil;
     [request setObject:self->language forKey:@"language"];
     [request setObject:self->country forKey:@"country"];
     [request setObject:@"ios" forKey:@"os"];
-    [request setObject:@"iTunes" forKey:@"marketplace"];
+    [request setObject:@"itunes" forKey:@"marketplace"];
 
     if ([self userTag])
         [request setObject:[self userTag] forKey:@"user_tag"];
