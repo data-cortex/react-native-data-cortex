@@ -280,7 +280,7 @@ static DataCortex *g_sharedDataCortex = nil;
     [request setObject:self->deviceType forKey:@"device_type"];
     [request setObject:self->language forKey:@"language"];
     [request setObject:self->country forKey:@"country"];
-    [request setObject:@"iPhone OS" forKey:@"os"];
+    [request setObject:@"ios" forKey:@"os"];
     [request setObject:@"iTunes" forKey:@"marketplace"];
 
     if ([self userTag])
