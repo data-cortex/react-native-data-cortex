@@ -1,0 +1,23 @@
+.DS_Store
+
+# XCode
+xcuserdata
+*.xccheckout
+*.hmap
+*.ipa
+*.xcuserstate
+project.xcworkspace
+
+# NPM
+node_modules
+*.log
+.nvm
+
+# Android
+.idea
+.gradle
+local.properties
+*.iml
+android/build
+android/gradle
+android/app/build

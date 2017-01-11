@@ -1,3 +1,5 @@
 rootProject.name = 'DCExample'
 
 include ':app'
+include ':react-native-data-cortex'
+project(':react-native-data-cortex').projectDir = new File(rootProject.projectDir, '../../../android')
