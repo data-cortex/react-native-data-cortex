@@ -116,7 +116,7 @@ static DataCortex *g_sharedDataCortex = nil;
 
         self->appVersion = [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] copy];
         self->osVersion = [[[UIDevice currentDevice] systemVersion] copy];
-        self->deviceFamily = [[UIDevice currentDevice].model copy];
+        self->deviceFamily = [[UIDevice currentDevice].model lowercaseString];
         NSLocale *currentLocale = [NSLocale currentLocale];  // get the current locale.
         self->country = [[currentLocale objectForKey:NSLocaleCountryCode] copy];
         self->language = [[currentLocale objectForKey:NSLocaleLanguageCode] copy];
