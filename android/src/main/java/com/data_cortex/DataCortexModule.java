@@ -467,8 +467,15 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
             new Response.ErrorListener() {
               @Override
               public void onErrorResponse(final VolleyError error) {
-                final String body = new String(error.networkResponse.data,UTF8_CHARSET);
-                callback.run(error.networkResponse.statusCode,body);
+                int statusCode = 0;
+                String body = null;
+                if (error != null && error.networkResponse != null) {
+                  statusCode = error.networkResponse.statusCode;
+                  if (error.networkResponse.data != null) {
+                    body = new String(error.networkResponse.data,UTF8_CHARSET);
+                  }
+                }
+                callback.run(statusCode,body);
               }
             })
     {
