@@ -160,46 +160,134 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
     }
   }
 
-  private static void _addRawString(final JSONObject obj,final ReadableMap props,String key) {
+  private static String _getMapValueAsString(final ReadableMap map,final String key) {
+    String ret = null;
     try {
-      if (props.hasKey(key)) {
-        obj.put(key,props.getString(key));
+      if (map.hasKey(key) && !map.isNull(key)) {
+        switch (map.getType(key)) {
+          case Boolean:
+            ret = String.valueOf(map.getBoolean(key));
+            break;
+          case Number:
+            ret = String.valueOf(map.getDouble(key));
+            break;
+          case String:
+            ret = map.getString(key);
+            break;
+          default:
+            break;
+        }
       }
-    } catch (final JSONException e) {
+    } catch(final Exception e) {
+      Log.e(TAG,"Convert failed to string for key: " + key + " on map:" + map,e);
+    }
+    if (ret != null && ret.length() == 0) {
+      ret = null;
+    }
+    return ret;
+  }
+  private static Double _getMapValueAsDouble(final ReadableMap map,final String key) {
+    Double ret = null;
+    try {
+      if (map.hasKey(key) && !map.isNull(key)) {
+        switch (map.getType(key)) {
+          case Boolean:
+            if (map.getBoolean(key)) {
+              ret = 1.0;
+            } else {
+              ret = 0.0;
+            }
+            break;
+          case Number:
+            ret = map.getDouble(key);
+            break;
+          case String:
+            final String s = map.getString(key);
+            if (s != null && s.length() > 0) {
+              ret = Double.valueOf(s);
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    } catch(final Exception e) {
+      Log.e(TAG,"Convert failed to double for key: " + key + " on map:" + map,e);
+    }
+    return ret;
+  }
+  private static Integer _getMapValueAsInt(final ReadableMap map,final String key) {
+    Integer ret = null;
+    try {
+      if (map.hasKey(key) && !map.isNull(key)) {
+        switch (map.getType(key)) {
+          case Boolean:
+            if (map.getBoolean(key)) {
+              ret = 1;
+            } else {
+              ret = 0;
+            }
+            break;
+          case Number:
+            ret = (int)map.getDouble(key);
+            break;
+          case String:
+            final String s = map.getString(key);
+            if (s != null && s.length() > 0) {
+              ret = Integer.valueOf(s);
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    } catch(final Exception e) {
+      Log.e(TAG,"Convert failed to double for key: " + key + " on map:" + map,e);
+    }
+    return ret;
+  }
+
+  private static void _addRawString(final JSONObject obj,final ReadableMap props,final String key) {
+    try {
+      final String val = _getMapValueAsString(props,key);
+      if (val != null) {
+        obj.put(key,val);
+      }
+    } catch (final Exception e) {
       Log.e(TAG,"Failed to convert key: " + key + " props: " + props,e);
     }
   }
   private static void _addString(final JSONObject obj,final ReadableMap props,final String key,
                                  final int maxLen) {
     try {
-      if (props.hasKey(key)) {
-        String s = props.getString(key);
-        if (s.length() > maxLen) {
-          s = s.substring(0,maxLen);
+      String val = _getMapValueAsString(props,key);
+      if (val != null) {
+        if (val.length() > maxLen) {
+          val = val.substring(0,maxLen);
         }
-        obj.put(key,s);
+        obj.put(key,val);
       }
-    } catch (final JSONException e) {
+    } catch (final Exception e) {
       Log.e(TAG,"Failed to convert key: " + key + " props: " + props,e);
     }
   }
   private static void _addNumber(final JSONObject obj,final ReadableMap props,final String key) {
     try {
-      if (props.hasKey(key)) {
-        double d = props.getDouble(key);
-        obj.put(key,d);
+      final Double val = _getMapValueAsDouble(props,key);
+      if (val != null) {
+        obj.put(key,val);
       }
-    } catch (final JSONException e) {
+    } catch (final Exception e) {
       Log.e(TAG,"Failed to convert key: " + key + " props: " + props,e);
     }
   }
   private static void _addInt(final JSONObject obj,final ReadableMap props,final String key) {
     try {
-      if (props.hasKey(key)) {
-        double d = props.getInt(key);
-        obj.put(key,d);
+      final Integer val = _getMapValueAsInt(props,key);
+      if (val != null) {
+        obj.put(key,val);
       }
-    } catch (final JSONException e) {
+    } catch (final Exception e) {
       Log.e(TAG,"Failed to convert key: " + key + " props: " + props,e);
     }
   }

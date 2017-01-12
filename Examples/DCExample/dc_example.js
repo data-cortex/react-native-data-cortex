@@ -25,6 +25,15 @@ var DCExample = React.createClass({
     DataCortex.event({
       kingdom: "user_interaction",
       phylum: "buttonOneClick",
+      class: null,
+      order: "",
+      genus: true,
+      species: 42,
+      float1: 1,
+      float2: 12.12,
+      float3: null,
+      float4: true,
+      event_index: 42,
     });
   },
 
@@ -35,6 +44,14 @@ var DCExample = React.createClass({
       phylum: "buttonTwoClick",
       spendCurrency: 'USD',
       spendAmount: 123.99,
+    });
+    DataCortex.event({
+      kingdom: "user_interaction",
+      phylum: "buttonTwoClick",
+      float1: "42",
+      float2: "foobar",
+      float3: "",
+      event_index: 42.1,
     });
   },
 
