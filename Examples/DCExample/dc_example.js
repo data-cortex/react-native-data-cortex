@@ -27,6 +27,7 @@ var DCExample = React.createClass({
       phylum: "buttonOneClick",
       class: null,
       order: "",
+      family: 42.2,
       genus: true,
       species: 42,
       float1: 1,

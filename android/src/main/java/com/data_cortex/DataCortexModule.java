@@ -169,7 +169,13 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
             ret = String.valueOf(map.getBoolean(key));
             break;
           case Number:
-            ret = String.valueOf(map.getDouble(key));
+            final double d = map.getDouble(key);
+            final long l = (long)d;
+            if (d == l) {
+              ret = String.valueOf(l);
+            } else {
+              ret = String.valueOf(d);
+            }
             break;
           case String:
             ret = map.getString(key);
