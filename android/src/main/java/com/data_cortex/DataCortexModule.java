@@ -44,6 +44,8 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
 
   private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
+  private static final int DEVICE_TYPE_LENGTH = 32;
+
   private static final String BASE_URL = "https://api.data-cortex.com/";
   private static final String URL_PATH = "/1/track";
 
@@ -503,8 +505,8 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
     } else {
       deviceType = brand + " " + model;
     }
-    if (deviceType.length() > 16) {
-      deviceType = deviceType.substring(0,16);
+    if (deviceType.length() > DEVICE_TYPE_LENGTH) {
+      deviceType = deviceType.substring(0,DEVICE_TYPE_LENGTH);
     }
     return deviceType;
   }
