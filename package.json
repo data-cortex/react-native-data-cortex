@@ -1,6 +1,6 @@
 {
   "name": "react-native-data-cortex",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Easy integration with Data Cortex from React Native",
   "main": "index.js",
   "repository": {
@@ -13,5 +13,5 @@
   "contributors": [
     "Yanko Bolanos"
   ],
-  "license": "BSD"
+  "license": "MIT"
 }
