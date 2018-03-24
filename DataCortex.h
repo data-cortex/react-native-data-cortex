@@ -35,4 +35,6 @@
     spendAmount:(NSNumber *)spendAmount
     spendType:(NSString *)spendType;
 
+- (void)appLogWithProperties:(NSDictionary *)properties;
+
 @end

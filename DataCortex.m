@@ -19,12 +19,12 @@ static int const GROUP_TAG_MAX_LENGTH = 32;
 static int const TAXONOMY_MAX_LENGTH = 32;
 static int const BATCH_COUNT = 10;
 
-
 static NSString * const EVENT_LIST_KEY = @"data_cortex_eventList";
 static NSString * const DEVICE_TAG_KEY = @"data_cortex_deviceTag";
 static NSString * const USER_TAG_PREFIX_KEY = @"data_cortex_userTag";
 static NSString * const INSTALL_SENT_KEY = @"data_cortex_installSent";
 static NSString * const LAST_DAU_SEND_KEY = @"data_cortex_lastDAUSend";
+static NSString * const LOG_LIST_KEY = @"data_cortex_logList";
 
 @implementation DataCortex {
     dispatch_queue_t sendQueue;
@@ -45,6 +45,11 @@ static NSString * const LAST_DAU_SEND_KEY = @"data_cortex_lastDAUSend";
     NSDateFormatter *dateFormatter;
     NSDictionary *userTags;
     NSDate *lastDAUSend;
+
+    dispatch_queue_t sendLogQueue;
+    BOOL isLogSendRunning;
+    NSMutableArray *logList;
+    NSLock *logLock;
 }
 
 @synthesize userTag = _userTag;
@@ -68,7 +73,6 @@ static DataCortex *g_sharedDataCortex = nil;
 - (void)error:(NSString *)s {
     NSLog(@"DC Error: %@",s);
 }
-
 
 + (DataCortex *)sharedInstanceWithAPIKey:(NSString *)apiKey forOrg:(NSString *)org {
     static dispatch_once_t onceToken;
@@ -147,6 +151,13 @@ static DataCortex *g_sharedDataCortex = nil;
         [self maybeAddDAU];
 
         [self sendEvents];
+
+        self->sendLogQueue = dispatch_queue_create("com.data-cortex.sendLogQueue",NULL);
+        self->isLogSendRunning = FALSE;
+        self->logLock = [[NSLock alloc] init];
+
+        [self initializeLogList];
+        [self sendLogs];
     }
     return self;
 }
@@ -548,6 +559,200 @@ static DataCortex *g_sharedDataCortex = nil;
         spendCurrency:spendCurrency
         spendType:spendType
         spendAmount:spendAmount];
+}
+
+- (void)appLogWithProperties:(NSDictionary *)properties {
+    NSMutableDictionary *log = [[NSMutableDictionary alloc] init];
+
+    [log setObject:[self getISO8601Date] forKey:@"event_datetime"];
+
+    [self addToLogEvent:log properties:properties key:@"hostname" maxLength:64];
+    [self addToLogEvent:log properties:properties key:@"filename" maxLength:256];
+    [self addToLogEvent:log properties:properties key:@"log_level" maxLength:64];
+    [self addToLogEvent:log properties:properties key:@"device_tag" maxLength:62];
+    [self addToLogEvent:log properties:properties key:@"user_tag" maxLength:62];
+    [self addToLogEvent:log properties:properties key:@"device_type" maxLength:64];
+    [self addToLogEvent:log properties:properties key:@"os" maxLength:16];
+    [self addToLogEvent:log properties:properties key:@"os_ver" maxLength:16];
+    [self addToLogEvent:log properties:properties key:@"browser" maxLength:16];
+    [self addToLogEvent:log properties:properties key:@"browser_ver" maxLength:16];
+    [self addToLogEvent:log properties:properties key:@"country" maxLength:16];
+    [self addToLogEvent:log properties:properties key:@"language" maxLength:16];
+    [self addToLogEvent:log properties:properties key:@"log_line" maxLength:65535];
+
+    id response_ms = [properties objectForKey:@"response_ms"];
+    if ([response_ms isKindOfClass:[NSNumber class]]) {
+        [log setValue:response_ms forKey:@"response_ms"];
+    }
+    id response_bytes = [properties objectForKey:@"response_bytes"];
+    if ([response_bytes isKindOfClass:[NSNumber class]]) {
+        [log setValue:response_bytes forKey:@"response_bytes"];
+    }
+
+    [self addLog:log];
+}
+
+- (void)addToLogEvent:(NSMutableDictionary *)log
+  properties:(NSDictionary *)properties
+  key:(NSString *)key
+  maxLength:(int)maxLength {
+
+  NSString *value = [[properties objectForKey:key] description];
+  if (value != nil) {
+    NSUInteger length = [value length];
+    if (length > 0) {
+        [log setObject:[self trimString:value maxLength:maxLength] forKey:key];
+    }
+  }
+}
+
+- (void)initializeLogList {
+    [self->logLock lock];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    self->logList = [[defaults arrayForKey:LOG_LIST_KEY] mutableCopy];
+
+    if (!self->logList) {
+        self->logList = [[NSMutableArray alloc] init];
+        [defaults setObject:self->logList forKey:LOG_LIST_KEY];
+        [defaults synchronize];
+    }
+
+    [self->logLock unlock];
+}
+
+- (void)sendLogs {
+    dispatch_async(self->sendLogQueue, ^{
+      if (!self->isLogSendRunning) {
+          self->isLogSendRunning = true;
+          __block NSArray *sendLogList = [self getSendLogs];
+
+          if ([sendLogList count] > 0) {
+              [self postLogs:sendLogList completionHandler:^(NSInteger httpStatus) {
+                  dispatch_async(self->sendQueue, ^{
+                      BOOL sendDelayed = FALSE;
+                      if (httpStatus >= 200 && httpStatus <= 299) {
+                          [self removeLogs:sendLogList];
+                      } else if (httpStatus == 400) {
+                          [self removeLogs:sendLogList];
+                      } else if (httpStatus == 403) {
+                          [self error:@"Bad authentication, please check your API Key"];
+                          [self removeLogs:sendLogList];
+                      } else if (httpStatus == 409) {
+                          [self error:@"Conflict, dup send?"];
+                          [self removeLogs:sendLogList];
+                      } else {
+                          // Unknown error, lets just wait and try again.
+                          sendDelayed = TRUE;
+                      }
+
+                      self->isLogSendRunning = FALSE;
+                      if (sendDelayed) {
+                          [self performSelector:@selector(sendLogs) withObject:nil afterDelay:DELAY_RETRY_INTERVAL];
+                      } else {
+                          [self sendLogs];
+                      }
+                  });
+              }];
+          } else {
+              self->isLogSendRunning = FALSE;
+          }
+      }
+    });
+}
+
+- (void)addLog:(NSObject *)log {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+    [self->logLock lock];
+    [self->logList addObject:log];
+    [defaults setObject:[self->eventList copy] forKey:LOG_LIST_KEY];
+    [self->logLock unlock];
+
+    [defaults synchronize];
+    [self sendLogs];
+}
+- (void)removeLogs:(NSArray *)processedLogs {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+    [self->logLock lock];
+    for (NSObject *log in processedLogs) {
+        [self->logList removeObject:log];
+    }
+    [defaults setObject:[self->logList copy] forKey:EVENT_LIST_KEY];
+    [defaults synchronize];
+
+    [self->logLock unlock];
+}
+- (NSArray *)getSendLogs {
+    NSArray *ret = nil;
+
+    [self->logLock lock];
+    if ([self->logList count] > BATCH_COUNT) {
+        ret = [self->logList subarrayWithRange:NSMakeRange(0,BATCH_COUNT)];
+    } else {
+        ret = [self->logList copy];
+    }
+    [self->logLock unlock];
+    return ret;
+}
+
+- (NSDictionary *)generateLogRequestWithEvents:(NSArray *)events {
+    NSMutableDictionary *request = [[NSMutableDictionary alloc] init];
+
+    [request setObject:self->apiKey forKey:@"api_key"];
+    [request setObject:self->appVersion forKey:@"app_ver"];
+    [request setObject:self->deviceTag forKey:@"device_tag"];
+    [request setObject:self->deviceType forKey:@"device_type"];
+    [request setObject:self->language forKey:@"language"];
+    [request setObject:self->country forKey:@"country"];
+    [request setObject:@"ios" forKey:@"os"];
+    [request setObject:self->osVersion forKey:@"os_ver"];
+
+    if ([self userTag]) {
+        [request setObject:[self userTag] forKey:@"user_tag"];
+    }
+    if ([events count] > 1) {
+        [request setObject:events forKey:@"events"];
+    } else {
+        NSDictionary *event0 = [events objectAtIndex:0];
+        [event0 enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL* stop) {
+            [request setObject:value forKey:key];
+        }];
+    }
+
+    return request;
+}
+
+- (void)postLogs:(NSArray *)events completionHandler:(void (^) (NSInteger))completionHandler {
+    NSOperationQueue *queue = [[NSOperationQueue alloc] init];
+
+    NSDictionary *dcRequest = [self generateLogRequestWithEvents:events];
+
+    NSString *urlString = [NSString stringWithFormat:@"%@/1/app_log",self->baseURL];
+
+    NSURL *url = [NSURL URLWithString: urlString];
+
+    NSMutableURLRequest *request = [NSMutableURLRequest
+        requestWithURL:url
+        cachePolicy:NSURLRequestUseProtocolCachePolicy
+        timeoutInterval:HTTP_TIMEOUT];
+
+    //TODO: check error
+    NSError *error = nil;
+    NSData *requestBody = [NSJSONSerialization dataWithJSONObject:dcRequest
+        options:0 error:&error];
+
+    [request setHTTPMethod:@"POST"];
+    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [request setHTTPBody:requestBody];
+
+    [NSURLConnection sendAsynchronousRequest:request
+        queue:queue
+        completionHandler:^(NSURLResponse *response,NSData *data,NSError *error) {
+            NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+            NSInteger httpStatus = [httpResponse statusCode];
+            completionHandler(httpStatus);
+        }];
 }
 
 @end
