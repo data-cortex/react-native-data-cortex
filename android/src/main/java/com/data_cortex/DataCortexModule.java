@@ -1,25 +1,26 @@
 package com.data_cortex;
 
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.content.Context;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -45,9 +46,12 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
   private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
   private static final int DEVICE_TYPE_LENGTH = 32;
+  private static final int DELAY_RETRY_INTERVAL = 30 * 1000;
 
   private static final String BASE_URL = "https://api.data-cortex.com/";
   private static final String URL_PATH = "/1/track";
+
+  private static final String LOG_URL_PATH = "/1/app_log";
 
   private static final String PREF_NAME = "data-cortex";
   private static final String PREF_EVENT_LIST = "event_list";
@@ -55,6 +59,7 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
   private static final String PREF_LAST_DAU_SEND = "last_dau_send";
   private static final String PREF_INSTALL_SENT = "install_sent";
   private static final String PREF_DEVICE_TAG = "device_tag";
+  private static final String PREF_LOG_LIST = "log_list";
 
   private final ReactApplicationContext context;
   private final RequestQueue mQueue;
@@ -76,6 +81,11 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
   private String mDeviceType = "";
   private String mLanguage = "zz";
   private String mCountry = "";
+
+  private final RequestQueue mLogQueue;
+  private ArrayList<JSONObject> mLogList = new ArrayList<JSONObject>();
+  private boolean mLogRequestInFlight = false;
+  private String mLogUrl = null;
 
   public DataCortexModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -115,6 +125,8 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
     mDeviceFamily = getDeviceFamily();
     mLanguage = Locale.getDefault().getLanguage().toLowerCase();
     mCountry = getCountry();
+
+    mLogQueue = Volley.newRequestQueue(context);
   }
 
   @Override
@@ -127,9 +139,13 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
     mApiKey = apiKey;
     mOrgName = orgName;
     mBaseUrl = BASE_URL + mOrgName + URL_PATH;
+    mLogUrl = BASE_URL + mOrgName + LOG_URL_PATH;
+
     maybeAddInstall();
     maybeAddDAU();
     maybeSendEvents();
+    maybeSendLogs();
+
     callback.invoke((Object)null);
   }
 
@@ -159,6 +175,16 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
       addEvent("economy",obj);
     } catch(final JSONException e) {
       Log.e(TAG,"economyWithProperties: json problem",e);
+    }
+  }
+
+  @ReactMethod
+  public void appLogWithProperties(final ReadableMap props) {
+    try {
+      final JSONObject obj = mapLogToObject(props);
+      addLog(obj);
+    } catch(final JSONException e) {
+      Log.e(TAG,"appLogWithProperties: json problem",e);
     }
   }
 
@@ -392,6 +418,16 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
     editor.apply();
   }
 
+  private void sendEventsLater() {
+    final Handler handler = new Handler();
+    handler.postDelayed(new Runnable() {
+      @Override
+      public void run() {
+        maybeSendEvents();
+      }
+    }, DELAY_RETRY_INTERVAL);
+  }
+
   private synchronized void maybeSendEvents() {
     if (!mRequestInFlight) {
       mRequestInFlight = true;
@@ -407,43 +443,22 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
         events.put(mEventList.get(i));
       }
       final String json = makeRequestJSON(events);
+      final String url = mBaseUrl + "?current_time=" + getISODateTime();
 
-      startRequest(json, new RequestCallback() {
+      startRequest(url,json,new RequestCallback() {
         @Override
-        public void run(final int statusCode,final String response) {
-          boolean clearItems = true;
-          boolean delaySend = true;
-          if (statusCode >= 200 && statusCode <= 299) {
-            delaySend = false;
-          } else if (statusCode == 400) {
-            Log.e(TAG,"Bad request:" + response);
-            delaySend = false;
-          } else if (statusCode == 403) {
-            // Bad request, clear items
-            Log.e(TAG,"Authentication error, bad API key most likely:" + response);
-          } else if (statusCode == 409) {
-            // Conflict?!
-            Log.i(TAG,"Conflict:" + response);
-          } else if (statusCode >= 500) {
-            clearItems = false;
-          } else if (statusCode >= 300 && statusCode <= 399) {
-            clearItems = false;
-          } else {
-            Log.i(TAG,"Unknown error:" + statusCode + " response: " + response);
-            clearItems = false;
-          }
-
+        public void run(final boolean clearItems,final boolean delaySend,final int statusCode,final String response) {
           if (clearItems) {
             for (int i = 0 ; i < sendCount ; i++) {
               mEventList.remove(0);
             }
             saveEvents();
           }
+          mRequestInFlight = false;
           if (!delaySend) {
-            mRequestInFlight = false;
             maybeSendEvents();
           } else {
-            mRequestInFlight = false;
+            sendEventsLater();
           }
         }
       });
@@ -548,16 +563,14 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
     return mISOFormat.format(new Date());
   }
 
-  private void startRequest(final String body,final RequestCallback callback) {
+  private void startRequest(final String url,final String body,final RequestCallback callback) {
     final byte[] bodyBytes = body.getBytes(UTF8_CHARSET);
-
-    final String url = mBaseUrl + "?current_time=" + getISODateTime();
 
     final StringRequest stringRequest = new StringRequest(Request.Method.POST,url,
             new Response.Listener<String>() {
               @Override
               public void onResponse(final String response) {
-                callback.run(200,response);
+                callback.run(true,false,200,response);
               }
             },
             new Response.ErrorListener() {
@@ -571,7 +584,28 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
                     body = new String(error.networkResponse.data,UTF8_CHARSET);
                   }
                 }
-                callback.run(statusCode,body);
+                boolean clearItems = true;
+                boolean delaySend = true;
+                if (statusCode >= 200 && statusCode <= 299) {
+                  delaySend = false;
+                } else if (statusCode == 400) {
+                  Log.e(TAG,"Bad request: " + body);
+                  delaySend = false;
+                } else if (statusCode == 403) {
+                  // Bad request, clear items
+                  Log.e(TAG,"Authentication error, bad API key most likely: " + body);
+                } else if (statusCode == 409) {
+                  // Conflict?!
+                  Log.i(TAG,"Conflict: " + body);
+                } else if (statusCode >= 500) {
+                  clearItems = false;
+                } else if (statusCode >= 300 && statusCode <= 399) {
+                  clearItems = false;
+                } else {
+                  Log.i(TAG,"Unknown error: " + statusCode + " response: " + body);
+                  clearItems = false;
+                }
+                callback.run(clearItems,delaySend,statusCode,body);
               }
             })
     {
@@ -600,7 +634,120 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
   }
 
   private static class RequestCallback {
-    public void run(final int statusCode,final String response) {
+    public void run(final boolean clearItems,final boolean delaySend,
+      final int statusCode,final String response) {
     }
+  }
+
+  private JSONObject mapLogToObject(ReadableMap props) throws JSONException {
+    final JSONObject obj = new JSONObject();
+    _addRawString(obj,props,"event_datetime");
+
+    _addString(obj,props,"hostname",64);
+    _addString(obj,props,"filename",256);
+    _addString(obj,props,"log_level",64);
+    _addString(obj,props,"device_tag",64);
+    _addString(obj,props,"user_tag",64);
+    _addString(obj,props,"device_type",64);
+    _addString(obj,props,"os",16);
+    _addString(obj,props,"os_ver",16);
+    _addString(obj,props,"browser",16);
+    _addString(obj,props,"browser_ver",16);
+    _addString(obj,props,"country",16);
+    _addString(obj,props,"language",16);
+    _addString(obj,props,"log_line",65535);
+
+    _addNumber(obj,props,"response_ms");
+    _addInt(obj,props,"response_bytes");
+
+    if (!obj.has("event_datetime")) {
+      obj.put("event_datetime",getISODateTime());
+    }
+    return obj;
+  }
+
+  private void sendLogsLater() {
+    final Handler handler = new Handler();
+    handler.postDelayed(new Runnable() {
+      @Override
+      public void run() {
+        maybeSendLogs();
+      }
+    }, DELAY_RETRY_INTERVAL);
+  }
+
+  private synchronized void maybeSendLogs() {
+    if (!mLogRequestInFlight) {
+      mLogRequestInFlight = true;
+      sendLogs();
+    }
+  }
+  private void sendLogs() {
+    if (mLogList.size() > 0 && mApiKey != null && mOrgName != null && mLogUrl != null) {
+      final int sendCount = Math.min(10,mLogList.size());
+      final JSONArray logs = new JSONArray();
+      for (int i = 0 ; i < sendCount ; ++i) {
+        logs.put(mLogList.get(i));
+      }
+      final String json = makeLogJSON(logs);
+      final String url = mLogUrl;
+
+      startRequest(url,json,new RequestCallback() {
+        @Override
+        public void run(final boolean clearItems,final boolean delaySend,final int statusCode,final String response) {
+          if (clearItems) {
+            for (int i = 0 ; i < sendCount ; i++) {
+              mLogList.remove(0);
+            }
+            saveLogs();
+          }
+          mLogRequestInFlight = false;
+          if (!delaySend) {
+            maybeSendLogs();
+          } else {
+            sendLogsLater();
+          }
+        }
+      });
+    } else {
+      mLogRequestInFlight = false;
+    }
+  }
+  private String makeLogJSON(final JSONArray logs) {
+    try {
+      final JSONObject obj = new JSONObject();
+      obj.put("api_key",mApiKey);
+      obj.put("app_ver",mAppVer);
+      obj.put("device_tag",mDeviceTag);
+      obj.put("device_type",mDeviceType);
+      obj.put("language",mLanguage);
+      obj.put("country",mCountry);
+      obj.put("os_ver",mOSVer);
+      obj.put("os","android");
+      if (mUserTag != null && mUserTag.length() > 0) {
+        obj.put("user_tag",mUserTag);
+      }
+
+      obj.put("events",logs);
+      return obj.toString();
+    } catch(final JSONException e) {
+      Log.e(TAG,"makeLogJSON: failed to make JSONObject",e);
+    }
+    return null;
+  }
+
+  private void addLog(JSONObject props) {
+    mLogList.add(props);
+    saveLogs();
+
+    maybeSendLogs();
+    maybeSendEvents();
+  }
+  private void saveLogs() {
+    final JSONArray logs = new JSONArray(mLogList);
+    final String json = logs.toString();
+    final SharedPreferences.Editor editor = mPrefs.edit();
+    editor.putString(PREF_LOG_LIST,json);
+    editor.apply();
   }
 }
