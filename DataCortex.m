@@ -502,7 +502,10 @@ static DataCortex *g_sharedDataCortex = nil;
             isGood = false;
         }
 
-        if( spendType ) {
+        if (!spendType) {
+            spendType = [[properties objectForKey:@"spend_type"] description];
+        }
+        if (spendType) {
             spendType = [self trimString:spendType maxLength:TAXONOMY_MAX_LENGTH];
             [event setValue:spendType forKey:@"spend_type"];
         }

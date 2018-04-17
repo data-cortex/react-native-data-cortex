@@ -50,8 +50,7 @@ export function event(props) {
 }
 
 export function economyEvent(props) {
-  if (!props || typeof props != 'object' )
-  {
+  if (!props || typeof props != 'object' ) {
     throw new Error('props must be an object');
   }
   if (!props.spendCurrency) {
@@ -62,6 +61,10 @@ export function economyEvent(props) {
   }
 
   if (is_initialized) {
+    if (props.spendType && !props.spend_type) {
+      props.spend_type = props.spendType;
+    }
+
     DataCortex.economyWithProperties(props,props.spendCurrency,props.spendAmount);
   } else {
     economy_list.push(props);

@@ -1,7 +1,7 @@
 
 Pod::Spec.new do |s|
   s.name         = "RCTDataCortex"
-  s.version      = "0.0.18"
+  s.version      = "0.0.19"
   s.summary      = "RCTDataCortex"
   s.description  = <<-DESC
                   React Native Data Cortex wrapper
