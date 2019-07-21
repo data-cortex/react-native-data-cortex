@@ -1,6 +1,6 @@
 {
   "name": "react-native-data-cortex",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "Easy integration with Data Cortex from React Native",
   "main": "index.js",
   "repository": {
