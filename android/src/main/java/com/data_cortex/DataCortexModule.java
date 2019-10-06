@@ -120,7 +120,7 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
     }
 
     mOSVer = Build.VERSION.RELEASE;
-    mDeviceTag = getDeviceTag();
+    mDeviceTag = _getDeviceTag();
     mDeviceType = getDeviceType();
     mDeviceFamily = getDeviceFamily();
     mLanguage = Locale.getDefault().getLanguage().toLowerCase();
@@ -132,6 +132,11 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
   @Override
   public String getName() {
     return "DataCortex";
+  }
+
+  @ReactMethod
+  public void getDeviceTag(final Callback callback) {
+    callback.invoke((Object)null,mDeviceTag);
   }
 
   @ReactMethod
@@ -492,7 +497,7 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
     return null;
   }
 
-  private String getDeviceTag() {
+  private String _getDeviceTag() {
     String deviceTag = mPrefs.getString(PREF_DEVICE_TAG,null);
     if (deviceTag == null) {
       final ContentResolver resolver = context.getContentResolver();

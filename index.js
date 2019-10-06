@@ -1,8 +1,18 @@
 'use strict';
 
-import React from 'react-native';
+import ReactNative from 'react-native';
 
-const { DataCortex } = React.NativeModules;
+const { DataCortex } = ReactNative.NativeModules;
+
+export default {
+  init,
+  addUserTag,
+  event,
+  economyEvent,
+  log,
+  logEvent,
+  getDeviceTag,
+};
 
 let is_initialized = false;
 let user_tag = false;
@@ -115,11 +125,10 @@ function _isError(e) {
     && typeof e.message === 'string';
 }
 
-export default {
-  init,
-  addUserTag,
-  event,
-  economyEvent,
-  log,
-  logEvent,
-};
+export function getDeviceTag(done) {
+  if (is_initialized) {
+    DataCortex.getDeviceTag(done);
+  } else {
+    done('not_initialized');
+  }
+}

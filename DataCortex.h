@@ -37,4 +37,6 @@
 
 - (void)appLogWithProperties:(NSDictionary *)properties;
 
+- (NSString *)getDeviceTag;
+
 @end

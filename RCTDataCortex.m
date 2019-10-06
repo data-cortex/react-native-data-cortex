@@ -13,6 +13,14 @@ RCT_EXPORT_METHOD(sharedInstance:(NSString *)apiKey
   callback(@[[NSNull null]]);
 }
 
+RCT_EXPORT_METHOD(getDeviceTag:(RCTResponseSenderBlock)callback) {
+  NSString *deviceTag = [[DataCortex sharedInstance] getDeviceTag];
+  if (deviceTag == nil) {
+    deviceTag = @"";
+  }
+  callback(@[[NSNull null],deviceTag]);
+}
+
 RCT_EXPORT_METHOD(eventWithProperties:(NSDictionary *)properties) {
   [[DataCortex sharedInstance] eventWithProperties:properties];
 }
