@@ -690,7 +690,7 @@ static DataCortex *g_sharedDataCortex = nil;
     for (NSObject *log in processedLogs) {
         [self->logList removeObject:log];
     }
-    [defaults setObject:[self->logList copy] forKey:EVENT_LIST_KEY];
+    [defaults setObject:[self->logList copy] forKey:LOG_LIST_KEY];
     [defaults synchronize];
 
     [self->logLock unlock];
