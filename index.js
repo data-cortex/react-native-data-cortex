@@ -20,11 +20,11 @@ const event_list = [];
 const economy_list = [];
 const log_list = [];
 
-export function init(api_key,org,done) {
+export function init(api_key, org, done) {
   if (!done) {
-    done = function() {};
+    done = function () {};
   }
-  DataCortex.sharedInstance(api_key,org,(err) => {
+  DataCortex.sharedInstance(api_key, org, (err) => {
     is_initialized = true;
     if (user_tag !== false) {
       addUserTag(user_tag);
@@ -60,7 +60,7 @@ export function event(props) {
 }
 
 export function economyEvent(props) {
-  if (!props || typeof props != 'object' ) {
+  if (!props || typeof props != 'object') {
     throw new Error('props must be an object');
   }
   if (!props.spendCurrency) {
@@ -75,7 +75,11 @@ export function economyEvent(props) {
       props.spend_type = props.spendType;
     }
 
-    DataCortex.economyWithProperties(props,props.spendCurrency,props.spendAmount);
+    DataCortex.economyWithProperties(
+      props,
+      props.spendCurrency,
+      props.spendAmount
+    );
   } else {
     economy_list.push(props);
   }
@@ -85,23 +89,23 @@ export function log() {
   if (!arguments || arguments.length == 0) {
     throw new Error('log must have arguments');
   }
-  let log_line = "";
-  for (let i = 0 ; i < arguments.length ; i++) {
+  let log_line = '';
+  for (let i = 0; i < arguments.length; i++) {
     const arg = arguments[i];
     if (i > 0) {
-      log_line += " ";
+      log_line += ' ';
     }
 
     if (_isError(arg)) {
-      log_line += arg.stack;
+      log_line += String(arg) + ' ' + arg.stack;
     } else if (typeof arg == 'object') {
       try {
         log_line += JSON.stringify(arg);
-      } catch(e) {
-        log_line += arg;
+      } catch (e) {
+        log_line += String(arg);
       }
     } else {
-      log_line += arg;
+      log_line += String(arg);
     }
   }
   logEvent({ log_line });
@@ -120,9 +124,13 @@ export function logEvent(props) {
 }
 
 function _isError(e) {
-  return e && e.stack && e.message
-    && typeof e.stack === 'string'
-    && typeof e.message === 'string';
+  return (
+    e &&
+    e.stack &&
+    e.message &&
+    typeof e.stack === 'string' &&
+    typeof e.message === 'string'
+  );
 }
 
 export function getDeviceTag(done) {

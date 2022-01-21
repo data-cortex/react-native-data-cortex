@@ -1,8 +1,12 @@
 {
   "name": "react-native-data-cortex",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "Easy integration with Data Cortex from React Native",
   "main": "index.js",
+  "scripts": {
+    "pretty": "prettier *.js --write",
+    "lint": "eslint *.js"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:data-cortex/react-native-data-cortex.git"
