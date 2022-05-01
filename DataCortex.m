@@ -114,17 +114,19 @@ static DataCortex *g_sharedDataCortex = nil;
 
         self->deviceTag = [defaults objectForKey:DEVICE_TAG_KEY];
         if (!self->deviceTag || [self->deviceTag isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
-#ifdef DC_NO_IDFA
-            self->deviceTag = [[[[UIDevice currentDevice] identifierForVendor] UUIDString] copy];
-#else
+#ifndef DC_NO_IDFA
             ASIdentifierManager *asiManager = [ASIdentifierManager sharedManager];
             if ([asiManager isAdvertisingTrackingEnabled]) {
                 self->deviceTag = [[[asiManager advertisingIdentifier] UUIDString] copy];
             }
+#endif
             if (!self->deviceTag || [self->deviceTag isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
                 self->deviceTag = [[[[UIDevice currentDevice] identifierForVendor] UUIDString] copy];
             }
-#endif
+            if (!self->deviceTag || [self->deviceTag isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
+                self->deviceTag = [[[NSUUID UUID] UUIDString] copy];
+            }
+
             [defaults setObject:self->deviceTag forKey:DEVICE_TAG_KEY];
             [defaults synchronize];
         }
