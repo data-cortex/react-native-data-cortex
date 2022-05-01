@@ -7,7 +7,9 @@
 //
 
 #import "DataCortex.h"
+#ifndef DC_NO_IDFA
 @import AdSupport;
+#endif
 
 static int const DELAY_RETRY_INTERVAL = 30.0;
 static int const HTTP_TIMEOUT = 60.0;
@@ -112,6 +114,9 @@ static DataCortex *g_sharedDataCortex = nil;
 
         self->deviceTag = [defaults objectForKey:DEVICE_TAG_KEY];
         if (!self->deviceTag || [self->deviceTag isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
+#ifdef DC_NO_IDFA
+            self->deviceTag = [[[[UIDevice currentDevice] identifierForVendor] UUIDString] copy];
+#else
             ASIdentifierManager *asiManager = [ASIdentifierManager sharedManager];
             if ([asiManager isAdvertisingTrackingEnabled]) {
                 self->deviceTag = [[[asiManager advertisingIdentifier] UUIDString] copy];
@@ -119,6 +124,7 @@ static DataCortex *g_sharedDataCortex = nil;
             if (!self->deviceTag || [self->deviceTag isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
                 self->deviceTag = [[[[UIDevice currentDevice] identifierForVendor] UUIDString] copy];
             }
+#endif
             [defaults setObject:self->deviceTag forKey:DEVICE_TAG_KEY];
             [defaults synchronize];
         }
