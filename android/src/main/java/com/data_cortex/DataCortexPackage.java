@@ -16,7 +16,7 @@ public class DataCortexPackage implements ReactPackage {
     return Arrays.<NativeModule>asList(new DataCortexModule(reactContext));
   }
 
-  @Override
+  //@Override removed in new RN
   public List<Class<? extends JavaScriptModule>> createJSModules() {
     return Collections.emptyList();
   }
