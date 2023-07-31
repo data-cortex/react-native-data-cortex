@@ -500,14 +500,19 @@ public class DataCortexModule extends ReactContextBaseJavaModule {
   private String _getDeviceTag() {
     String deviceTag = mPrefs.getString(PREF_DEVICE_TAG,null);
     if (deviceTag == null) {
-      final ContentResolver resolver = context.getContentResolver();
-      final String androidID = Settings.Secure.getString(resolver,Settings.Secure.ANDROID_ID);
-      if (androidID != null && androidID.length() >= 16) {
-        deviceTag = androidID.toLowerCase();
-      } else {
-        deviceTag = UUID.randomUUID().toString().toLowerCase();
-        Log.i(TAG,"Generated random UUID because this device has a bad ANDROID_ID: " + androidID);
+      if (BuildConfig.DC_USE_AD_ID) {
+        final ContentResolver resolver = context.getContentResolver();
+        final String androidID = Settings.Secure.getString(resolver, Settings.Secure.ANDROID_ID);
+        if (androidID != null && androidID.length() >= 16) {
+          deviceTag = androidID.toLowerCase();
+        } else {
+          Log.i(TAG,"Bad androidID: " + androidID);
+        }
       }
+      if (deviceTag == null) {
+        deviceTag = UUID.randomUUID().toString().toLowerCase();
+      }
+
       final SharedPreferences.Editor editor = mPrefs.edit();
       editor.putString(PREF_DEVICE_TAG,deviceTag);
       editor.commit();

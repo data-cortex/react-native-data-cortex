@@ -13,6 +13,7 @@ android {
         targetSdkVersion safeExtGet('targetSdkVersion', 26)
         versionCode 1
         versionName "1.0"
+        buildConfigField("boolean", "DC_USE_AD_ID", safeExtGet('dataCortexUseAdId', 'true'))
     }
     lintOptions {
         abortOnError false
